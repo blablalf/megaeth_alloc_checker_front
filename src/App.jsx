@@ -9,18 +9,38 @@ const START_BLOCK = 21280000n;
 
 const CONTRACT_ABI = [
   {
-    type: "event",
-    name: "AllocationSet",
-    inputs: [
-      { name: "entityID", type: "bytes16", indexed: true },
-      { name: "acceptedAmountUSDT", type: "uint256", indexed: false },
-    ],
-  },
-  {
     type: "function",
     name: "entityByAddress",
     inputs: [{ name: "", type: "address" }],
     outputs: [{ name: "", type: "bytes16" }],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "entityStateByID",
+    inputs: [{ name: "", type: "bytes16" }],
+    outputs: [
+      {
+        name: "",
+        type: "tuple",
+        components: [
+          { name: "addr", type: "address" },
+          { name: "entityID", type: "bytes16" },
+          { name: "acceptedAmount", type: "uint64" },
+          { name: "bidTimestamp", type: "uint32" },
+          { name: "refunded", type: "bool" },
+          { name: "cancelled", type: "bool" },
+          {
+            name: "activeBid",
+            type: "tuple",
+            components: [
+              { name: "amount", type: "uint64" },
+              { name: "timestamp", type: "uint32" },
+            ],
+          },
+        ],
+      },
+    ],
     stateMutability: "view",
   },
 ];
@@ -56,10 +76,6 @@ function App() {
     setProgress("");
 
     try {
-      // Get current block
-      setProgress("📦 Getting current block...");
-      const currentBlock = await client.getBlockNumber();
-
       // Get entityID for the user address
       setProgress("📡 Fetching entityID...");
       const entityID = await client.readContract({
@@ -69,66 +85,33 @@ function App() {
         args: [address],
       });
 
-      // Scan in chunks to avoid RPC limits (50k blocks max)
-      setProgress(
-        `🔄 Scanning blocks from ${START_BLOCK} to ${currentBlock}...`
-      );
+      // Get entity state by ID
+      setProgress("� Fetching allocation data...");
+      const entityState = await client.readContract({
+        address: CONTRACT_ADDRESS,
+        abi: CONTRACT_ABI,
+        functionName: "entityStateByID",
+        args: [entityID],
+      });
 
-      const allLogs = [];
-      const CHUNK_SIZE = 50000n;
+      // Extract allocation amount (acceptedAmount is in USDT with 6 decimals)
+      const acceptedAmount = Number(entityState.acceptedAmount);
+      const amountUSDT = acceptedAmount / 1e6;
 
-      for (
-        let fromBlock = START_BLOCK;
-        fromBlock <= currentBlock;
-        fromBlock += CHUNK_SIZE
-      ) {
-        const toBlock =
-          fromBlock + CHUNK_SIZE - 1n > currentBlock
-            ? currentBlock
-            : fromBlock + CHUNK_SIZE - 1n;
-
-        setProgress(`📦 Scanning blocks ${fromBlock} to ${toBlock}...`);
-
-        const logs = await client.getLogs({
-          address: CONTRACT_ADDRESS,
-          event: {
-            type: "event",
-            name: "AllocationSet",
-            inputs: [
-              { name: "entityID", type: "bytes16", indexed: true },
-              { name: "acceptedAmountUSDT", type: "uint256", indexed: false },
-            ],
-          },
-          fromBlock,
-          toBlock,
-        });
-
-        allLogs.push(...logs);
-      }
-
-      // Filter events for our entityID
-      const userAllocations = allLogs.filter(
-        (log) => log.args.entityID.toLowerCase() === entityID.toLowerCase()
-      );
-
-      if (userAllocations.length === 0) {
+      if (acceptedAmount === 0) {
         setResult({
           found: false,
           message: "No allocation detected",
           entityID: entityID,
         });
       } else {
-        // Show the latest allocation
-        const latestAlloc = userAllocations[userAllocations.length - 1];
-        const amountUSDT = Number(latestAlloc.args.acceptedAmountUSDT) / 1e6;
-
         setResult({
           found: true,
           amount: amountUSDT,
-          transactionHash: latestAlloc.transactionHash,
-          blockNumber: latestAlloc.blockNumber.toString(),
-          totalAllocations: userAllocations.length,
           entityID: entityID,
+          refunded: entityState.refunded,
+          cancelled: entityState.cancelled,
+          bidTimestamp: entityState.bidTimestamp,
         });
       }
     } catch (err) {
@@ -189,29 +172,21 @@ function App() {
                     </span>
                   </div>
                   <div className="detail-item">
-                    <span className="label">🔗 Transaction:</span>
-                    <a
-                      href={`https://etherscan.io/tx/${result.transactionHash}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="link"
-                    >
-                      {result.transactionHash.slice(0, 10)}...
-                      {result.transactionHash.slice(-8)}
-                    </a>
-                  </div>
-                  <div className="detail-item">
-                    <span className="label">📦 Block:</span>
-                    <span className="value">{result.blockNumber}</span>
-                  </div>
-                  <div className="detail-item">
-                    <span className="label">📊 Total Allocations:</span>
-                    <span className="value">{result.totalAllocations}</span>
-                  </div>
-                  <div className="detail-item">
                     <span className="label">🆔 Entity ID:</span>
                     <span className="value small">{result.entityID}</span>
                   </div>
+                  {result.refunded && (
+                    <div className="detail-item">
+                      <span className="label">⚠️ Status:</span>
+                      <span className="value">Refunded</span>
+                    </div>
+                  )}
+                  {result.cancelled && (
+                    <div className="detail-item">
+                      <span className="label">⚠️ Status:</span>
+                      <span className="value">Cancelled</span>
+                    </div>
+                  )}
                 </div>
               </>
             ) : (
