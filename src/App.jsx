@@ -148,9 +148,9 @@ function App() {
   return (
     <div className="app">
       <div className="container">
-        <h1>🔍 Mega.nz Allocation Checker</h1>
+        <h1>🔍 MegaETH Allocation Checker</h1>
         <p className="subtitle">
-          Check your mega.nz allocation status on Ethereum
+          Check your MegaETH allocation status on Ethereum
         </p>
 
         <div className="input-section">
