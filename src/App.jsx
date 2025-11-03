@@ -60,13 +60,7 @@ function App() {
 
   const checkAllocations = async () => {
     if (!address) {
-      setError("Please enter an address");
-      return;
-    }
-
-    // Basic address validation
-    if (!address.match(/^0x[a-fA-F0-9]{40}$/)) {
-      setError("Invalid Ethereum address format");
+      setError("Please enter an address or ENS name");
       return;
     }
 
@@ -76,13 +70,45 @@ function App() {
     setProgress("");
 
     try {
+      let resolvedAddress = address;
+
+      // Check if input is an ENS name (contains .eth or doesn't start with 0x)
+      if (!address.startsWith("0x") || address.endsWith(".eth")) {
+        setProgress("🔍 Resolving ENS name...");
+        try {
+          resolvedAddress = await client.getEnsAddress({
+            name: address,
+          });
+
+          if (!resolvedAddress) {
+            setError("ENS name not found or not resolved");
+            setLoading(false);
+            setProgress("");
+            return;
+          }
+        } catch (ensError) {
+          setError(`Failed to resolve ENS name: ${ensError.message}`);
+          setLoading(false);
+          setProgress("");
+          return;
+        }
+      } else {
+        // Basic address validation for regular addresses
+        if (!address.match(/^0x[a-fA-F0-9]{40}$/)) {
+          setError("Invalid Ethereum address format");
+          setLoading(false);
+          setProgress("");
+          return;
+        }
+      }
+
       // Get entityID for the user address
       setProgress("📡 Fetching entityID...");
       const entityID = await client.readContract({
         address: CONTRACT_ADDRESS,
         abi: CONTRACT_ABI,
         functionName: "entityByAddress",
-        args: [address],
+        args: [resolvedAddress],
       });
 
       // Get entity state by ID
@@ -139,7 +165,7 @@ function App() {
         <div className="input-section">
           <input
             type="text"
-            placeholder="Enter your Ethereum address (0x...)"
+            placeholder="Enter your Ethereum address or ENS name (vitalik.eth)"
             value={address}
             onChange={(e) => setAddress(e.target.value)}
             onKeyPress={handleKeyPress}
