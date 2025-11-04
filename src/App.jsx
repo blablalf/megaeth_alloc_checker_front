@@ -219,6 +219,10 @@ function App() {
               <>
                 <h2>❌ No Allocation Detected</h2>
                 <p>No allocation found for this address.</p>
+                <p className="info-text">
+                  ℹ️ If you participated in the sale, your allocation might not be set yet. 
+                  Please check back later or contact the MegaETH team for more information.
+                </p>
                 {result.entityID && (
                   <div className="result-details">
                     <div className="detail-item">
@@ -236,7 +240,6 @@ function App() {
           <p>
             Contract: <code>{CONTRACT_ADDRESS}</code>
           </p>
-          <p>Scanning from block {START_BLOCK.toString()}</p>
         </div>
       </div>
     </div>
