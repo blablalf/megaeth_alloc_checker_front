@@ -129,7 +129,10 @@ function App() {
       let apiError = null;
       try {
         // API needs the full entityID with 0x prefix
-        const apiUrl = `/api/allocation?entityId=${entityID}`;
+        // Use proxy in dev (via vite.config), Netlify Function in production
+        const apiUrl = import.meta.env.DEV 
+          ? `/api/allocation?entityId=${entityID}`
+          : `/.netlify/functions/allocation?entityId=${entityID}`;
         console.log("=== API CALL DEBUG ===");
         console.log("Full URL:", apiUrl);
         console.log("Entity ID:", entityID);
