@@ -5,7 +5,6 @@ import "./App.css";
 
 // Configuration
 const CONTRACT_ADDRESS = "0xab02bf85a7a851b6a379ea3d5bd3b9b4f5dd8461";
-const START_BLOCK = 21280000n;
 
 const CONTRACT_ABI = [
   {
@@ -129,21 +128,15 @@ function App() {
       let apiAllocation = null;
       let apiError = null;
       try {
-        // Convert entityID (bytes16) to hex string without 0x prefix
-        const entityIdHex = entityID.replace(/^0x/, '');
-        // Use proxy in development, direct URL in production
-        const apiUrl = import.meta.env.DEV 
-          ? `/api/allocation?entityId=${entityIdHex}`
-          : `https://token-api.megaeth.com/api/allocation?entityId=${entityIdHex}`;
+        // API needs the full entityID with 0x prefix
+        const apiUrl = `/api/allocation?entityId=${entityID}`;
         console.log("=== API CALL DEBUG ===");
         console.log("Full URL:", apiUrl);
-        console.log("Entity ID (original):", entityID);
-        console.log("Entity ID (hex without 0x):", entityIdHex);
-        console.log("Entity ID length:", entityIdHex.length);
-        
+        console.log("Entity ID:", entityID);
+
         const apiResponse = await fetch(apiUrl);
         console.log("API Response status:", apiResponse.status);
-        
+
         if (apiResponse.ok) {
           const apiData = await apiResponse.json();
           console.log("API Data received:", JSON.stringify(apiData, null, 2));
@@ -159,10 +152,12 @@ function App() {
       }
 
       // Check if there's any allocation (on-chain or API)
-      const hasApiAllocation = apiAllocation && (
-        (apiAllocation.usdt_allocation && Number(apiAllocation.usdt_allocation) > 0) ||
-        (apiAllocation.token_allocation && Number(apiAllocation.token_allocation) > 0)
-      );
+      const hasApiAllocation =
+        apiAllocation &&
+        ((apiAllocation.usdt_allocation &&
+          Number(apiAllocation.usdt_allocation) > 0) ||
+          (apiAllocation.token_allocation &&
+            Number(apiAllocation.token_allocation) > 0));
 
       if (acceptedAmount === 0 && !hasApiAllocation) {
         setResult({
@@ -238,21 +233,30 @@ function App() {
                   {result.apiAllocation && (
                     <>
                       <div className="detail-item">
-                        <span className="label">✅ Confirmed USDT Allocation (API):</span>
+                        <span className="label">
+                          ✅ Confirmed USDT Allocation (API):
+                        </span>
                         <span className="value">
-                          {result.apiAllocation.usdt_allocation && Number(result.apiAllocation.usdt_allocation) > 0 ? 
-                            `${Number(result.apiAllocation.usdt_allocation).toLocaleString()} USDT` : 
-                            'No allocation'}
+                          {result.apiAllocation.usdt_allocation &&
+                          Number(result.apiAllocation.usdt_allocation) > 0
+                            ? `${Number(
+                                result.apiAllocation.usdt_allocation
+                              ).toLocaleString()} USDT`
+                            : "No allocation"}
                         </span>
                       </div>
-                      {result.apiAllocation.token_allocation && Number(result.apiAllocation.token_allocation) > 0 && (
-                        <div className="detail-item">
-                          <span className="label">🪙 Token Allocation:</span>
-                          <span className="value">
-                            {Number(result.apiAllocation.token_allocation).toLocaleString()} MEGA
-                          </span>
-                        </div>
-                      )}
+                      {result.apiAllocation.token_allocation &&
+                        Number(result.apiAllocation.token_allocation) > 0 && (
+                          <div className="detail-item">
+                            <span className="label">🪙 Token Allocation:</span>
+                            <span className="value">
+                              {Number(
+                                result.apiAllocation.token_allocation
+                              ).toLocaleString()}{" "}
+                              MEGA
+                            </span>
+                          </div>
+                        )}
                       {result.apiAllocation.clearing_price && (
                         <div className="detail-item">
                           <span className="label">💵 Clearing Price:</span>
@@ -262,23 +266,27 @@ function App() {
                         </div>
                       )}
                       <p className="info-text">
-                        ℹ️ This is your confirmed allocation that will be updated on-chain at the end of the month.
+                        ℹ️ This is your confirmed allocation that will be
+                        updated on-chain at the end of the month.
                       </p>
                     </>
                   )}
                   <div className="detail-item">
                     <span className="label">⛓️ On-Chain Amount:</span>
                     <span className="value">
-                      {result.amount > 0 ? `${result.amount.toLocaleString()} USDT` : 'Not yet updated'}
+                      {result.amount > 0
+                        ? `${result.amount.toLocaleString()} USDT`
+                        : "Not yet updated"}
                     </span>
                   </div>
                   {result.amount === 0 && result.apiAllocation && (
                     <p className="info-text">
-                      ⏳ The on-chain state will be updated at the end of the month.
+                      ⏳ The on-chain state will be updated at the end of the
+                      month.
                     </p>
                   )}
                   {!result.apiAllocation && result.apiError && (
-                    <p className="info-text" style={{color: '#ff9800'}}>
+                    <p className="info-text" style={{ color: "#ff9800" }}>
                       ⚠️ Could not fetch API allocation: {result.apiError}
                     </p>
                   )}
@@ -309,8 +317,8 @@ function App() {
                     <div className="detail-item">
                       <span className="label">📊 API Check:</span>
                       <span className="value">
-                        USDT: {result.apiAllocation.usdt_allocation || '0'} | 
-                        Tokens: {result.apiAllocation.token_allocation || '0'}
+                        USDT: {result.apiAllocation.usdt_allocation || "0"} |
+                        Tokens: {result.apiAllocation.token_allocation || "0"}
                       </span>
                     </div>
                     {result.apiAllocation.clearing_price && (
@@ -324,8 +332,9 @@ function App() {
                   </div>
                 )}
                 <p className="info-text">
-                  ℹ️ If you participated in the sale, your allocation might not be set yet. 
-                  Please check back later or contact the MegaETH team for more information.
+                  ℹ️ If you participated in the sale, your allocation might not
+                  be set yet. Please check back later or contact the MegaETH
+                  team for more information.
                 </p>
                 {result.entityID && (
                   <div className="result-details">
