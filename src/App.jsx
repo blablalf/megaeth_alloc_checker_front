@@ -123,7 +123,7 @@ function App() {
       const acceptedAmount = Number(entityState.acceptedAmount);
       const amountUSDT = acceptedAmount / 1e6;
 
-      // Fetch current allocation from API (confirmed allocation, will be on-chain at end of month)
+      // Fetch current allocation from API (confirmed allocation, will be on-chain at end of sale)
       setProgress("🌐 Fetching confirmed allocation from API...");
       let apiAllocation = null;
       let apiError = null;
@@ -270,7 +270,7 @@ function App() {
                       )}
                       <p className="info-text">
                         ℹ️ This is your confirmed allocation that will be
-                        updated on-chain at the end of the month.
+                        updated on-chain at the end of the sale.
                       </p>
                     </>
                   )}
@@ -285,7 +285,7 @@ function App() {
                   {result.amount === 0 && result.apiAllocation && (
                     <p className="info-text">
                       ⏳ The on-chain state will be updated at the end of the
-                      month.
+                      sale.
                     </p>
                   )}
                   {!result.apiAllocation && result.apiError && (
